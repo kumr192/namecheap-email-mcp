@@ -1,6 +1,3 @@
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from fastapi import FastAPI
 from pydantic import BaseModel
 import os
@@ -8,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = FastAPI(title="Namecheap Email MCP Server")
+app = FastAPI(title="Email MCP Server")
 
 class EmailRequest(BaseModel):
     to: str
@@ -18,33 +15,32 @@ class EmailRequest(BaseModel):
 
 @app.post("/send-email")
 async def send_email(request: EmailRequest) -> dict:
-    """Send an email via Namecheap SMTP"""
-    
-    smtp_server = "mail.privateemail.com"
-    smtp_port = 587
-    sender_email = os.getenv("EMAIL_ADDRESS")
-    sender_password = os.getenv("EMAIL_PASSWORD")
-    
-    if not sender_email or not sender_password:
-        return {"success": False, "error": "EMAIL_ADDRESS or EMAIL_PASSWORD not set"}
+    """Send an email via Resend"""
     
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = request.subject
-        msg["From"] = sender_email
-        msg["To"] = request.to
+        from resend import Resend
+        
+        api_key = os.getenv("RESEND_API_KEY")
+        if not api_key:
+            return {"success": False, "error": "RESEND_API_KEY not set"}
+        
+        client = Resend(api_key=api_key)
+        sender_email = os.getenv("SENDER_EMAIL", "onboarding@resend.dev")
+        
+        email_dict = {
+            "from": sender_email,
+            "to": request.to,
+            "subject": request.subject,
+        }
         
         if request.is_html:
-            msg.attach(MIMEText(request.body, "html"))
+            email_dict["html"] = request.body
         else:
-            msg.attach(MIMEText(request.body, "plain"))
+            email_dict["text"] = request.body
         
-        with smtplib.SMTP(smtp_server, smtp_port) as server:
-            server.starttls()
-            server.login(sender_email, sender_password)
-            server.sendmail(sender_email, request.to, msg.as_string())
+        response = client.emails.send(email_dict)
         
-        return {"success": True, "message": f"Email sent to {request.to}"}
+        return {"success": True, "message": f"Email sent to {request.to}", "id": response.get("id")}
     
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -55,4 +51,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
