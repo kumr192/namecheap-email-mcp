@@ -1,15 +1,16 @@
 import os
 from dotenv import load_dotenv
 import httpx
-from mcp.server import Server
+from fastapi import FastAPI
+from mcp.server.fastapi import MCPServer
 from mcp.types import Tool, TextContent
-import json
 
 load_dotenv()
 
-server = Server("email-mcp-server")
+app = FastAPI(title="Email MCP Server")
+mcp = MCPServer(app)
 
-@server.call_tool()
+@mcp.call_tool()
 async def call_tool(name: str, arguments: dict):
     if name == "send_email":
         to = arguments.get("to")
@@ -50,7 +51,7 @@ async def call_tool(name: str, arguments: dict):
         except Exception as e:
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
-@server.list_tools()
+@mcp.list_tools()
 async def list_tools():
     return [
         Tool(
@@ -69,9 +70,11 @@ async def list_tools():
         )
     ]
 
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
 if __name__ == "__main__":
-    from mcp.server.stdio import stdio_server
-    import asyncio
-    
-    # For local testing with stdio
-    asyncio.run(stdio_server(server))
+    import uvicorn
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
