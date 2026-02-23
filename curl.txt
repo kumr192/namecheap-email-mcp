@@ -1,0 +1,1 @@
+curl -X POST http://localhost:8000/send-email -H "Content-Type: application/json" -d "{\"to\":\"shiv.arun.iyer@gmail.com\",\"subject\":\"Test from Namecheap MCP\",\"body\":\"This is a test email\"}"
