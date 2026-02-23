@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+import httpx
 
 load_dotenv()
 
@@ -18,29 +19,34 @@ async def send_email(request: EmailRequest) -> dict:
     """Send an email via Resend"""
     
     try:
-        from resend import Resend
-        
         api_key = os.getenv("RESEND_API_KEY")
         if not api_key:
             return {"success": False, "error": "RESEND_API_KEY not set"}
         
-        client = Resend(api_key=api_key)
         sender_email = os.getenv("SENDER_EMAIL", "onboarding@resend.dev")
         
-        email_dict = {
+        payload = {
             "from": sender_email,
             "to": request.to,
             "subject": request.subject,
         }
         
         if request.is_html:
-            email_dict["html"] = request.body
+            payload["html"] = request.body
         else:
-            email_dict["text"] = request.body
+            payload["text"] = request.body
         
-        response = client.emails.send(email_dict)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.resend.com/emails",
+                json=payload,
+                headers={"Authorization": f"Bearer {api_key}"}
+            )
         
-        return {"success": True, "message": f"Email sent to {request.to}", "id": response.get("id")}
+        if response.status_code == 200:
+            return {"success": True, "message": f"Email sent to {request.to}"}
+        else:
+            return {"success": False, "error": response.text}
     
     except Exception as e:
         return {"success": False, "error": str(e)}
