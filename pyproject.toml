@@ -9,5 +9,6 @@ dependencies = [
     "fastapi-mcp>=0.4.0",
     "mcp>=1.26.0",
     "python-dotenv>=1.2.1",
+    "resend>=2.22.0",
     "uvicorn>=0.41.0",
 ]

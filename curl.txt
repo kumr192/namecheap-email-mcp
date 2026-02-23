@@ -1,1 +1,10 @@
 curl -X POST http://localhost:8000/send-email -H "Content-Type: application/json" -d "{\"to\":\"shiv.arun.iyer@gmail.com\",\"subject\":\"Test from Namecheap MCP\",\"body\":\"This is a test email\"}"
+
+git remote add origin https://github.com/kumr192/namecheap-email-mcp.git
+git branch -M main
+git push -u origin main
+
+curl -X POST https://web-production-5b86b.up.railway.app/send-email -H "Content-Type: application/json" -d "{\"to\":\"shiv.arun.iyer@gmail.com\",\"subject\":\"Test from Railway\",\"body\":\"Hello from deployed MCP server\"}"
+
+
+curl -X POST https://web-production-5b86b.up.railway.app/send-email -H "Content-Type: application/json" -d "{\"to\":\"shiv.arun.iyer@gmail.com\",\"subject\":\"Test\",\"body\":\"Test\"}"
